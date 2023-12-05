@@ -1,5 +1,4 @@
 import std/algorithm
-import std/options
 import std/sequtils
 import std/strutils
 
@@ -44,161 +43,105 @@ humidity-to-location map:
 #
 
 type
-  Range = object
-    r_start: int
-    r_end: int
+  Range = tuple[start: int, stop: int]
+  RangeMap = tuple[dst: Range, src: Range]
 
-proc intersect(a, b: Range): bool =
-  return not (b.r_start > a.r_end or a.r_start > b.r_end)
+proc isEmpty(self: Range): bool = self.start >= self.stop
 
-proc union(a, b: Range): Range =
-  if not a.intersect(b):
-    raise newException(ValueError, "Ranges do not overlap")
-  return Range(r_start: min(a.r_start, b.r_start), r_end: max(a.r_end, b.r_end))
+proc contains(self: Range, val: int): bool = val in (self.start .. self.stop)
 
-proc intersection(a, b: Range): Option[Range] =
-  if a.intersect(b):
-    return some(Range(r_start: max(a.r_start, b.r_start), r_end: min(a.r_end, b.r_end)))
+proc size(self: Range): int = self.stop - self.start
 
-proc subtraction(a, b: Range): seq[Range] =
-  if not a.intersect(b):
-    return @[a]
+# Map a value from the source to a value into the destination range.
+proc mapValue(self: RangeMap, val: int): int =
+  assert self.src.size() == self.dst.size()
+  val - self.src.start + self.dst.start
 
-  var ranges: seq[Range] = @[]
+# Apply the range map to the input range.
+# Returns the mapped range and the fixed points ranges, if not empty.
+proc apply(self: RangeMap, seed: Range): (Range, seq[Range]) =
+  let fixed_left: Range = (
+    min(seed.start, self.src.start),
+    min(seed.stop, self.src.start)
+  )
 
-  if a.r_start < b.r_start:
-    ranges.add(Range(r_start: a.r_start, r_end: b.r_start))
-  if a.r_end > b.r_end:
-    ranges.add(Range(r_start: b.r_end, r_end: a.r_end))
+  let fixed_right: Range = (
+    max(seed.start, self.src.stop),
+    max(seed.stop, self.src.stop)
+  )
 
-  ranges
+  let mapped: Range = (
+    self.mapValue(max(seed.start, self.src.start)),
+    self.mapValue(min(seed.stop, self.src.stop))
+  )
 
-proc contains(self: Range, val: int): bool =
-  val in (self.r_start .. self.r_end)
+  var fixed: seq[Range] = @[]
 
-proc size(self: Range): int =
-  self.r_end - self.r_start
+  if not fixed_left.isEmpty():
+    fixed.add(fixed_left)
 
-proc mapValue(self: Range, dst: Range, val: int): int =
-  assert self.size() == dst.size()
-  val - self.r_start + dst.r_start
+  if not fixed_right.isEmpty():
+    fixed.add(fixed_right)
 
-type
-  RangeSet = object
-    ranges: seq[Range]
-
-proc sort(self: var RangeSet) =
-  self.ranges.sort(proc (a, b: Range): int = a.r_start - b.r_start)
-
-proc add(self: var RangeSet, in_range: Range) =
-  var in_range = in_range
-  var new_ranges: seq[Range] = @[]
-
-  for range in self.ranges:
-    if in_range.intersect(range):
-      in_range = in_range.union(range)
-    else:
-      new_ranges.add(range)
-
-  new_ranges.add(in_range)
-
-  self.ranges = new_ranges
-  self.sort()
+  (mapped, fixed)
 
 #
-# Domain structs
+# Map types
 #
 
 type
   Map = object
-    ranges: seq[(Range, Range)]
+    name: string
+    ranges: seq[RangeMap]
 
 proc mapIndex(self: Map, input: int): int =
   for (dst_range, src_range) in self.ranges:
     if src_range.contains(input):
-      return src_range.mapValue(dst_range, input)
+      return (dst_range, src_range).mapValue(input)
   return input
 
-proc findFirstIntersecting(self: Map, input_range: Range): Option[int] =
-  var i = 0
-  for i in 0..self.ranges.len():
-    if self.ranges[i][1].r_start > input_range.r_start:
-      return some(i)
+proc mapRange(self: Map, input: Range): seq[Range] =
+  var unmapped_ranges: seq[Range] = @[input]
 
-proc findLastIntersecting(self: Map, input_range: Range): Option[int] =
-  var i = 0
-  for i in 0..self.ranges.len():
-    if self.ranges[i][1].r_start > input_range.r_end:
-      return some(i)
+  for range in self.ranges:
+    var next_unmapped_ranges: seq[Range] = @[]
+    for unmapped_range in unmapped_ranges:
+      let (mapped, fixed) = range.apply(unmapped_range)
+      if not mapped.isEmpty():
+        result.add mapped
+      next_unmapped_ranges.add fixed
+    unmapped_ranges = next_unmapped_ranges
 
-proc mapRange(self: Map, input_range: Range): RangeSet =
-  var r: seq[Range] = @[]
+  result.add unmapped_ranges
 
-  # Find first map after start of input range.
-  let first_map = self.findFirstIntersecting(input_range)
-  let last_map = self.findLastIntersecting(input_range)
-
-  for (dst, src) in self.ranges[first_map.get()..last_map.get()]:
-    r.add(src.intersection(input_range))
-    r.add()
-  
-  # Find last map before end of input range.
-
-  # for (dst_range, src_range) in self.ranges:
-  #   let intersection = input_range.intersection(src_range)
-  #   if intersection.isSome:
-  #     let intersection = intersection.get()
-  #     let s = src_range.mapValue(dst_range, intersection.r_start)
-  #     let e = src_range.mapValue(dst_range, intersection.r_end)
-  #     let mapped_range = Range(r_start: s, r_end: e)
-  #     echo mapped_range
-  #     r.add(mapped_range)
-  #     for diff in input_range.subtraction(src_range):
-  #       echo diff
-  #       r.add(diff)
-  #   else:
-  #     r.add(input_range)
-  #
-  # echo r
-  # RangeSet(ranges: r)
-
-proc mapRanges(self: Map, input_ranges: RangeSet): RangeSet =
-  var r = RangeSet()
-
-  for range in input_ranges.ranges:
-    for mapped_range in self.mapRange(range).ranges:
-      r.add(mapped_range)
-  
-  echo "All ranges: ", r
-  r
+proc mapRanges(self: Map, input: seq[Range]): seq[Range] =
+  for input_range in input:
+    result.add self.mapRange(input_range)
 
 type
-  Maps = object
-    maps: seq[Map]
+  Maps = seq[Map]
 
 proc mapPath(self: Maps, seed: int): int =
-  var index = seed
-
-  for map in self.maps:
-    index = map.mapIndex(index)
-
-  index
+  result = seed
+  for map in self:
+    result = map.mapIndex(result)
 
 proc minPath(self: Maps, seeds: seq[int]): int =
   var locs: seq[int] = @[]
-
   for seed in seeds:
-    locs.add(self.mapPath(seed))
-
+    locs.add self.mapPath(seed)
   locs.min()
 
-proc mapRanges(self: Maps, seeds: RangeSet): RangeSet =
-  var r = seeds
+proc mapRanges(self: Maps, input: seq[Range]): seq[Range] =
+  result = input
+  for map in self:
+    result = map.mapRanges(result)
 
-  for map in self.maps:
-    r = map.mapRanges(r)
+proc findMin(self: Maps, input: seq[Range]): int =
+  result = high(int)
+  for range in self.mapRanges(input):
+    result = min(result, range.start)
 
-  r
 
 #
 # Parsing procs
@@ -208,18 +151,19 @@ proc parseSeeds(line: string): seq[int] =
   let tok = line.split(" ")
   tok[1..^1].map(parseInt)
 
-proc parseMap(lines: openArray[string]): Map =
-  var m = Map(ranges: @[])
+proc parseMap(name: string, lines: openArray[string]): Map =
+  var m = Map(name: name, ranges: @[])
 
   for line in lines:
     let parts = line.split(" ")
-    let (dst, src, len) = (parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]))
-    m.ranges.add((Range(r_start: dst, r_end: dst + len), Range(r_start: src, r_end: src + len)))
-  m.ranges.sort(proc (a, b: (Range, Range)): int = a[1].r_start - b[1].r_start)
+    let (dst, src, len) = (parseInt(parts[0]), parseInt(parts[1]), parseInt(
+        parts[2]))
+    m.ranges.add(((dst, dst + len), (src, src + len)))
+  m.ranges.sort(proc (a, b: (Range, Range)): int = a[1].start - b[1].start)
 
   m
 
-proc parseInput(input: string): (Maps, seq[int]) = 
+proc parseInput(input: string): (Maps, seq[int]) =
   let lines = input.splitLines()
   var line_ranges: seq[(int, int)] = @[]
 
@@ -238,9 +182,21 @@ proc parseInput(input: string): (Maps, seq[int]) =
 
   var maps: seq[Map] = @[]
   for (s, e) in line_ranges:
-    maps.add(parseMap(lines[s..e]))
+    maps.add(parseMap(lines[s-1].split(" ")[0], lines[s..e]))
 
-  (Maps(maps: maps), seeds)
+  (maps, seeds)
+
+proc parseInput2(input: string): (Maps, seq[Range]) =
+  let (maps, seeds) = parseInput(input)
+
+  var seeds_ranges: seq[Range] = @[]
+  var idx = 0
+  while idx < seeds.len():
+    let range = (seeds[idx], seeds[idx] + seeds[idx + 1])
+    seeds_ranges.add(range)
+    idx += 2
+
+  (maps, seeds_ranges)
 
 #
 # Entry points
@@ -251,21 +207,10 @@ proc run1*(input: string): int =
   maps.minPath(seeds)
 
 proc run2*(input: string): int =
-  let (maps, seeds) = parseInput(TEST_CASE)
-
-  var seeds_ranges = RangeSet()
-  var idx = 0
-  while idx < seeds.len():
-    let range = Range(r_start: seeds[idx], r_end: seeds[idx] + seeds[idx + 1])
-    seeds_ranges.add(range)
-    idx += 2
-
-  let mapped_range = maps.mapRanges(seeds_ranges)
-  echo mapped_range
-
-  # maps.minPath(seedsRanges)
-  0
+  let (maps, seeds) = parseInput2(input)
+  maps.findMin(seeds)
 
 when isMainModule:
-  echo run1(TEST_CASE)
-  echo run2(TEST_CASE)
+  let (maps, seeds) = parseInput2(TEST_CASE)
+
+  echo maps.findMin(seeds)

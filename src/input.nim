@@ -15,7 +15,7 @@ proc today*(): int =
 
 proc downloadInput(day: int = today()): string =
   let headers = newHttpHeaders([("Cookie", cookie())])
-  let client = newHttpClient(headers=headers)
+  let client = newHttpClient(headers = headers)
   let input = client.getContent(fmt"https://adventofcode.com/2023/day/{day}/input")
 
   saveInput(day, input)
