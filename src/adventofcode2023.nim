@@ -31,12 +31,10 @@ macro genCase(): untyped =
         let input = getInput(`dayLit`)
 
         let result1 = `dayModuleName`.run1(input)
-        discard result1
-        # echo fmt"Part 1: {result1}"
+        echo "Part \x1b[32m1\x1b[0m: \x1b[33m" & repr(result1) & "\x1b[0m"
 
         let result2 = `dayModuleName`.run2(input)
-        discard result2
-        # echo fmt"Part 2: {result2}"
+        echo "Part \x1b[32m2\x1b[0m: \x1b[33m" & repr(result2) & "\x1b[0m"
   
       let ofBranch = nnkOfBranch.newTree(dayLit)
       ofBranch.add caseDay
