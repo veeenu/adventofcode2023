@@ -161,6 +161,9 @@ proc run2*(input: string): int =
   for idx, hand in sorted_hands.pairs():
     result += (idx + 1) * hand.bid
 
+proc test1*(input: string): int64 = 0
+proc test2*(input: string): int64 = 0
+
 when isMainModule:
   let game = parseGame(TEST_CASE)
   for hand in game:

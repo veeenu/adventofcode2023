@@ -1,7 +1,5 @@
-import std/deques
 import std/re
 import std/strutils
-import std/sets
 import std/tables
 
 const TEST_CASE = """
@@ -118,6 +116,9 @@ proc run1*(input: string): int64 =
 proc run2*(input: string): int64 =
   let (steps, graph) = parseInput(input)
   parTraversal(graph, steps)
+
+proc test1*(input: string): int64 = 0
+proc test2*(input: string): int64 = 0
 
 when isMainModule:
   echo run1(TEST_CASE)

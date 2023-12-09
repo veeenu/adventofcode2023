@@ -172,3 +172,6 @@ proc run1*(input: string): int =
 proc run2*(input: string): int =
   let (maps, seeds) = parseInput2(input)
   maps.findMin(seeds)
+
+proc test1*(input: string): int64 = 0
+proc test2*(input: string): int64 = 0

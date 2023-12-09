@@ -100,3 +100,6 @@ proc run2*(input: string): int =
   let race = parseInput2(input)
   let (z1, z2) = race.findZeros()
   z2 - z1
+
+proc test1*(input: string): int64 = 0
+proc test2*(input: string): int64 = 0
