@@ -1,6 +1,7 @@
 import std/httpclient
 import std/syncio
 import std/strformat
+import std/strutils
 import std/times
 
 proc cookie(): string =
@@ -22,6 +23,6 @@ proc downloadInput(day: int = today()): string =
 
 proc getInput*(day: int = today()): string =
   try:
-    syncio.open(fmt"input/day{day:02}.txt", fmRead).readAll()
+    syncio.open(fmt"input/day{day:02}.txt", fmRead).readAll().strip()
   except:
-    downloadInput(day)
+    downloadInput(day).strip()
