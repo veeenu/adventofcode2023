@@ -1,5 +1,5 @@
 r:
-  zig run zig/day$(date +%d).zig
+  zig run -O ReleaseFast zig/day$(date +%d).zig
 
 t:
-  zig run zig/day$(date +%d).zig -- t
+  zig run -O Debug zig/day$(date +%d).zig -- t

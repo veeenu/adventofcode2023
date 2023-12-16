@@ -31,6 +31,7 @@ fn readInput(allocator: std.mem.Allocator, day: u32) ![]const u8 {
 }
 
 fn downloadInput(allocator: std.mem.Allocator, day: u32) ![]const u8 {
+    std.debug.print("Downloading day {}...\n", .{day});
     const cookie = try readCookie(allocator);
     defer allocator.free(cookie);
 
@@ -66,7 +67,7 @@ pub fn getInput(allocator: std.mem.Allocator, day: u32) ![]const u8 {
     if (readInput(allocator, day)) |content| {
         return content;
     } else |_| {
-        return try downloadInput(allocator, 15);
+        return try downloadInput(allocator, day);
     }
 }
 
