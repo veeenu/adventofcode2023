@@ -89,8 +89,6 @@ fn parseDay(input: []const u8) !u8 {
 pub const DayFunctions = struct {
     run1: *const fn (*std.mem.Allocator, []const u8) i64,
     run2: *const fn (*std.mem.Allocator, []const u8) i64,
-    test1: *const fn (*std.mem.Allocator, []const u8) i64,
-    test2: *const fn (*std.mem.Allocator, []const u8) i64,
 };
 
 pub fn runDay(comptime day_functions: type, day: u8) !void {
@@ -101,22 +99,10 @@ pub fn runDay(comptime day_functions: type, day: u8) !void {
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
 
-    var t_flag = false;
-    for (args) |arg| {
-        if (std.mem.eql(u8, arg, "t")) {
-            t_flag = true;
-        }
-    }
-
     const input_full = try getInput(allocator, day);
     defer allocator.free(input_full);
     const input = util.trimString(input_full);
 
-    if (t_flag) {
-        std.debug.print("Test \x1b[32mPart 1\x1b[0m:\x1b[33m {}\x1b[0m\n", .{day_functions.test1(allocator, input)});
-        std.debug.print("Test \x1b[32mPart 2\x1b[0m:\x1b[33m {}\x1b[0m\n", .{day_functions.test2(allocator, input)});
-    } else {
-        std.debug.print("\x1b[32mPart 1\x1b[0m:\x1b[33m {}\x1b[0m\n", .{day_functions.run1(allocator, input)});
-        std.debug.print("\x1b[32mPart 2\x1b[0m:\x1b[33m {}\x1b[0m\n", .{day_functions.run2(allocator, input)});
-    }
+    std.debug.print("\x1b[32mPart 1\x1b[0m:\x1b[33m {}\x1b[0m\n", .{day_functions.run1(allocator, input)});
+    std.debug.print("\x1b[32mPart 2\x1b[0m:\x1b[33m {}\x1b[0m\n", .{day_functions.run2(allocator, input)});
 }

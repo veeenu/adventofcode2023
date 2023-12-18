@@ -166,18 +166,6 @@ const Day = struct {
 
         return total_power;
     }
-
-    pub fn test1(allocator: std.mem.Allocator, input: []const u8) u64 {
-        _ = input;
-
-        return run1(allocator, TEST_CASE);
-    }
-
-    pub fn test2(allocator: std.mem.Allocator, input: []const u8) u64 {
-        _ = input;
-
-        return run2(allocator, TEST_CASE);
-    }
 };
 
 pub fn main() !void {
