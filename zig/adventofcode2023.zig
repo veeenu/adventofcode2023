@@ -1,5 +1,6 @@
 const std = @import("std");
 const http = std.http;
+const util = @import("util.zig");
 
 fn readFile(allocator: std.mem.Allocator, filePath: []const u8) ![]const u8 {
     const file = try std.fs.cwd().openFile(filePath, .{});
@@ -107,8 +108,9 @@ pub fn runDay(comptime day_functions: type, day: u8) !void {
         }
     }
 
-    const input = try getInput(allocator, day);
-    defer allocator.free(input);
+    const input_full = try getInput(allocator, day);
+    defer allocator.free(input_full);
+    const input = util.trimString(input_full);
 
     if (t_flag) {
         std.debug.print("Test \x1b[32mPart 1\x1b[0m:\x1b[33m {}\x1b[0m\n", .{day_functions.test1(allocator, input)});
