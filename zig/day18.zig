@@ -26,7 +26,7 @@ const Direction = enum { right, up, left, down };
 
 const Dig = struct {
     direction: Direction,
-    count: usize,
+    count: isize,
     color: u32,
 
     fn parse(row: []const u8) !Dig {
@@ -41,7 +41,7 @@ const Dig = struct {
         };
 
         const count_slice = it.next().?;
-        const count = try std.fmt.parseInt(usize, count_slice, 10);
+        const count = try std.fmt.parseInt(isize, count_slice, 10);
         const color_slice = it.next().?;
         const color = try std.fmt.parseInt(u32, color_slice[2 .. color_slice.len - 1], 16);
 
@@ -54,6 +54,38 @@ const Dig = struct {
         var it = std.mem.split(u8, input, "\n");
         while (it.next()) |row| {
             try l.append(try Dig.parse(row));
+        }
+
+        return l;
+    }
+
+    fn parse2(row: []const u8) !Dig {
+        var it = std.mem.split(u8, row, " ");
+
+        _ = it.next().?;
+        _ = it.next().?;
+        const color_slice = it.next().?;
+        const color = try std.fmt.parseInt(u32, color_slice[2 .. color_slice.len - 1], 16);
+
+        const direction = switch (color & 0xF) {
+            0 => Direction.right,
+            1 => Direction.down,
+            2 => Direction.left,
+            3 => Direction.up,
+            else => unreachable,
+        };
+
+        const count = color >> 4;
+
+        return Dig{ .direction = direction, .count = count, .color = color };
+    }
+
+    fn parseInput2(allocator: std.mem.Allocator, input: []const u8) !std.ArrayList(Dig) {
+        var l = std.ArrayList(Dig).init(allocator);
+
+        var it = std.mem.split(u8, input, "\n");
+        while (it.next()) |row| {
+            try l.append(try Dig.parse2(row));
         }
 
         return l;
@@ -78,140 +110,68 @@ const Point = struct {
     }
 };
 
-const Beam = struct {
-    point: Point,
-    direction: Direction,
-};
-
-fn performDig(allocator: Allocator, input: []const u8) !u64 {
-    const digs = try Dig.parseInput(allocator, input);
-    defer digs.deinit();
-
-    var point_set = std.AutoHashMap(Point, bool).init(allocator);
-    defer point_set.deinit();
-
-    var beams = std.ArrayList(Beam).init(allocator);
-    defer beams.deinit();
+fn performDig(allocator: Allocator, digs: std.ArrayList(Dig)) !u64 {
+    var points = std.ArrayList(Point).init(allocator);
+    defer points.deinit();
 
     var current_point = Point{ .x = 0, .y = 0 };
-    var min_x: isize = 0;
-    var min_y: isize = 0;
-    var max_x: isize = 0;
-    var max_y: isize = 0;
+    try points.append(current_point);
+
+    var perimeter: isize = 0;
 
     for (digs.items) |dig| {
-        try beams.append(Beam{ .point = current_point, .direction = switch (dig.direction) {
-            .up => Direction.right,
-            .right => Direction.down,
-            .down => Direction.left,
-            .left => Direction.up,
-        } });
-        for (0..dig.count) |_| {
-            try point_set.put(current_point, true);
-            current_point.advance(dig.direction);
-            try beams.append(Beam{ .point = current_point, .direction = switch (dig.direction) {
-                .up => Direction.right,
-                .right => Direction.down,
-                .down => Direction.left,
-                .left => Direction.up,
-            } });
+        const dx: isize = switch (dig.direction) {
+            .up, .down => 0,
+            .right => 1,
+            .left => -1,
+        };
+        const dy: isize = switch (dig.direction) {
+            .up => -1,
+            .down => 1,
+            .right, .left => 0,
+        };
 
-            min_x = @min(min_x, current_point.x);
-            min_y = @min(min_y, current_point.y);
-            max_x = @max(max_x, current_point.x);
-            max_y = @max(max_y, current_point.y);
-        }
+        perimeter += dig.count;
+
+        current_point = current_point.translate(dx * dig.count, dy * dig.count);
+        try points.append(current_point);
     }
 
-    var pixels = std.ArrayList(bool).init(allocator);
-    defer pixels.deinit();
+    var area: isize = 0;
+    var x: usize = 0;
+    while (x < points.items.len - 1) : (x += 1) {
+        const p1 = points.items[x];
+        const p2 = points.items[x + 1];
 
-    const width: usize = @bitCast(max_x - min_x + 1);
-    const height: usize = @bitCast(max_y - min_y + 1);
-
-    std.debug.print("w={} h={} count={} min=({}, {}) max=({}, {})\n", .{ width, height, point_set.count(), min_x, min_y, max_x, max_y });
-
-    {
-        var x: isize = 0;
-        var y: isize = 0;
-        while (y < height) : (y += 1) {
-            x = 0;
-            while (x < width) : (x += 1) {
-                const test_point = Point{ .x = x + min_x, .y = y + min_y };
-                try pixels.append(point_set.contains(test_point));
-            }
-        }
+        area += p1.x * p2.y - p2.x * p1.y;
     }
 
-    for (beams.items) |beam| {
-        const iwidth: isize = @intCast(width);
-        var beam_point = beam.point;
-        while (true) {
-            const point = beam_point.translate(-min_x, -min_y);
-            if (point.x < 0 or point.x >= width or point.y < 0 or point.y >= height) {
-                break;
-            }
-            pixels.items[@bitCast(point.y * iwidth + point.x)] = true;
-            beam_point.advance(beam.direction);
-            if (point_set.contains(beam_point)) {
-                break;
-            }
-        }
-    }
+    area = @divFloor(area, 2);
+    area += @divFloor(perimeter, 2) + 1;
 
-    var count: u64 = 0;
-    {
-        const fs = std.fs;
-        var file = try fs.cwd().createFile("day18.ppm", .{});
-        defer file.close();
-
-        try file.writer().print("P3\n{} {}\n1\n", .{ width, height });
-
-        for (0..height) |y| {
-            for (0..width) |x| {
-                const val = pixels.items[y * width + x];
-
-                const xx: isize = @intCast(x);
-                const yy: isize = @intCast(y);
-
-                if (point_set.contains(Point{ .x = xx + min_x, .y = yy + min_y })) {
-                    try file.writer().writeAll("0 ");
-                } else {
-                    try file.writer().writeAll("1 ");
-                }
-
-                if (val) {
-                    count += 1;
-                    try file.writer().writeAll("1 1 ");
-                } else {
-                    try file.writer().writeAll("0 0 ");
-                }
-            }
-            try file.writer().writeByte('\n');
-        }
-    }
-
-    return count;
-}
-
-test "parses test case" {
-    _ = try Dig.parseInput(global_allocator, TEST_CASE);
+    return @intCast(area);
 }
 
 test "perform dig" {
-    const mqs = try performDig(global_allocator, TEST_CASE);
+    const digs = Dig.parseInput(global_allocator, TEST_CASE) catch unreachable;
+    defer digs.deinit();
+    const mqs = try performDig(global_allocator, digs);
     std.debug.print("{}\n", .{mqs});
 }
 
 const Day = struct {
     pub fn run1(allocator: std.mem.Allocator, input: []const u8) u64 {
-        return performDig(allocator, input) catch unreachable;
+        const digs = Dig.parseInput(allocator, input) catch unreachable;
+        defer digs.deinit();
+
+        return performDig(allocator, digs) catch unreachable;
     }
 
     pub fn run2(allocator: std.mem.Allocator, input: []const u8) u64 {
-        _ = input;
-        _ = allocator;
-        return 0;
+        const digs = Dig.parseInput2(allocator, input) catch unreachable;
+        defer digs.deinit();
+
+        return performDig(allocator, digs) catch unreachable;
     }
 
     pub fn test1(allocator: std.mem.Allocator, input: []const u8) u64 {
