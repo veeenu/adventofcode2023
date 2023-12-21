@@ -12,7 +12,7 @@ impl AocSolution for Solution {
         Self
     }
 
-    fn part1(&self, input: &str) -> String {
+    fn part1(&self, input: &str) -> u64 {
         input
             .trim()
             .lines()
@@ -25,10 +25,9 @@ impl AocSolution for Solution {
                 }
             })
             .sum::<u64>()
-            .to_string()
     }
 
-    fn part2(&self, input: &str) -> String {
+    fn part2(&self, input: &str) -> u64 {
         input
             .trim()
             .lines()
@@ -36,7 +35,6 @@ impl AocSolution for Solution {
             .map(|g| g.min_cubes())
             .map(|(r, g, b)| r * g * b)
             .sum::<u64>()
-            .to_string()
     }
 }
 

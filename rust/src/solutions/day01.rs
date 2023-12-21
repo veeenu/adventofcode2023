@@ -7,7 +7,7 @@ impl AocSolution for Solution {
         Self
     }
 
-    fn part1(&self, input: &str) -> String {
+    fn part1(&self, input: &str) -> u64 {
         input
             .lines()
             .map(|line| {
@@ -25,11 +25,10 @@ impl AocSolution for Solution {
 
                 first * 10 + last
             })
-            .sum::<u32>()
-            .to_string()
+            .sum::<u32>() as u64
     }
 
-    fn part2(&self, input: &str) -> String {
+    fn part2(&self, input: &str) -> u64 {
         input
             .lines()
             .map(|line| {
@@ -40,8 +39,7 @@ impl AocSolution for Solution {
 
                 first * 10 + last
             })
-            .sum::<u32>()
-            .to_string()
+            .sum::<u32>() as u64
     }
 }
 

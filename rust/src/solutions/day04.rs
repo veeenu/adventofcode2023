@@ -18,7 +18,7 @@ impl AocSolution for Solution {
         Self
     }
 
-    fn part1(&self, input: &str) -> String {
+    fn part1(&self, input: &str) -> u64 {
         win_count(input)
             .filter_map(|(_, win_count)| {
                 if win_count == 0 {
@@ -28,10 +28,9 @@ impl AocSolution for Solution {
                 }
             })
             .sum::<u64>()
-            .to_string()
     }
 
-    fn part2(&self, input: &str) -> String {
+    fn part2(&self, input: &str) -> u64 {
         let win_counts = win_count(input).collect::<Vec<_>>();
 
         let mut queue = VecDeque::new();
@@ -52,7 +51,7 @@ impl AocSolution for Solution {
             count += 1;
         }
 
-        count.to_string()
+        count as u64
     }
 }
 
@@ -122,7 +121,7 @@ mod tests {
     fn test() {
         let sol = Solution::new();
         println!("{:?}", Card::parse(TEST_INPUT));
-        assert_eq!(sol.part1(TEST_INPUT), "13");
-        assert_eq!(sol.part2(TEST_INPUT), "30");
+        assert_eq!(sol.part1(TEST_INPUT), 13);
+        assert_eq!(sol.part2(TEST_INPUT), 30);
     }
 }

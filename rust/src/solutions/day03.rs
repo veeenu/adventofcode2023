@@ -11,7 +11,7 @@ impl AocSolution for Solution {
         Self
     }
 
-    fn part1(&self, input: &str) -> String {
+    fn part1(&self, input: &str) -> u64 {
         let lines = input.lines().collect::<Vec<_>>();
         let row_count = lines.len() as i32;
         let column_count = lines[0].len() as i32;
@@ -53,11 +53,10 @@ impl AocSolution for Solution {
                     None
                 }
             })
-            .sum::<i32>()
-            .to_string()
+            .sum::<i32>() as u64
     }
 
-    fn part2(&self, input: &str) -> String {
+    fn part2(&self, input: &str) -> u64 {
         let lines = input.lines().collect::<Vec<_>>();
         let row_count = lines.len() as i32;
         let column_count = lines[0].len() as i32;
@@ -114,8 +113,7 @@ impl AocSolution for Solution {
                     None
                 }
             })
-            .sum::<i32>()
-            .to_string()
+            .sum::<i32>() as u64
     }
 }
 
@@ -164,7 +162,7 @@ mod tests {
     #[test]
     fn test() {
         let sol = Solution::new();
-        assert_eq!(sol.part1(TEST_INPUT), "4361");
-        assert_eq!(sol.part2(TEST_INPUT), "467835");
+        assert_eq!(sol.part1(TEST_INPUT), 4361);
+        assert_eq!(sol.part2(TEST_INPUT), 467835);
     }
 }
