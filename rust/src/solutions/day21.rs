@@ -4,27 +4,10 @@ use std::{
 };
 
 use hashbrown::HashMap;
-use itertools::Itertools;
 
 use super::AocSolution;
 
 pub struct Solution;
-
-const TEST_CASE: &str = textwrap_macros::dedent!(
-    r"
-    ...........
-    .....###.#.
-    .###.##..#.
-    ..#.#...#..
-    ....#.#....
-    .##..S####.
-    .##..#...#.
-    .......##..
-    .##.#.####.
-    .##..##.##.
-    ...........
-    "
-);
 
 #[derive(Clone, Copy, Debug)]
 enum Direction {
@@ -170,7 +153,7 @@ impl ConfigMap {
         self.current.0.insert(start);
     }
 
-    fn step(&mut self, i: usize) -> bool {
+    fn step(&mut self) -> bool {
         if let Some(next) = self.map.get(&self.current) {
             self.current = next.clone();
             true
@@ -196,8 +179,8 @@ impl AocSolution for Solution {
         let (field, start) = Field::parse(input);
         let mut config_map = ConfigMap::new(field, start);
 
-        for i in 0..64 {
-            config_map.step(i);
+        for _ in 0..64 {
+            config_map.step();
         }
 
         config_map.count() as u64
@@ -211,28 +194,31 @@ impl AocSolution for Solution {
 
         // For the input, the states repeat first at i = field.width and then repeat at every
         // single step. No point in calculating statuses farther.
-        let wraps = (0..).find(|&i| config_map.step(i)).unwrap();
+        let wraps = config_map.field.width as usize;
 
         let div = STEPS.div(wraps);
         let rem = STEPS.rem(wraps);
+        println!("Div {div} Rem {rem} wraps {wraps}");
 
         // Reinitialize to count the steps in a full cycle.
         config_map.reinit(start);
-        (0..wraps).for_each(|i| {
-            config_map.step(i);
+        (0..wraps).for_each(|_| {
+            config_map.step();
         });
         let cycle_steps = config_map.count();
 
         // Proof that there is a cycle:
-        (0..wraps).for_each(|i| {
-            config_map.step(i);
-        });
-        assert_eq!(cycle_steps, config_map.count());
+        for _ in 0..10 {
+            (0..wraps).for_each(|_| {
+                config_map.step();
+            });
+            assert_eq!(cycle_steps, config_map.count());
+        }
 
         // Reinitialize to count the steps in a full cycle.
         config_map.reinit(start);
-        (0..rem).for_each(|i| {
-            config_map.step(i);
+        (0..rem).for_each(|_| {
+            config_map.step();
         });
         let rem_steps = config_map.count();
 
@@ -244,6 +230,22 @@ impl AocSolution for Solution {
 
 #[cfg(test)]
 mod tests {
+    const TEST_CASE: &str = textwrap_macros::dedent!(
+        r"
+    ...........
+    .....###.#.
+    .###.##..#.
+    ..#.#...#..
+    ....#.#....
+    .##..S####.
+    .##..#...#.
+    .......##..
+    .##.#.####.
+    .##..##.##.
+    ...........
+    "
+    );
+
     use super::*;
 
     #[test]
@@ -251,17 +253,11 @@ mod tests {
         let (field, start) = Field::parse(TEST_CASE);
         let mut config_map = ConfigMap::new(field, start);
 
-        for i in 0..6 {
-            config_map.step(i);
+        for _ in 0..6 {
+            config_map.step();
             println!("{}", config_map.current.0.len());
         }
 
         assert_eq!(config_map.count(), 16);
-    }
-
-    #[test]
-    fn test_part2() {
-        let sol = Solution;
-        println!("{}", sol.part2(TEST_CASE));
     }
 }

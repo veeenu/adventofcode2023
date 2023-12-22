@@ -9,26 +9,6 @@ use super::AocSolution;
 
 pub struct Solution;
 
-const TEST_CASE: &str = textwrap_macros::dedent!(
-    r"
-    broadcaster -> a, b, c
-    %a -> b
-    %b -> c
-    %c -> inv
-    &inv -> a
-    "
-);
-
-const TEST_CASE2: &str = textwrap_macros::dedent!(
-    r"
-    broadcaster -> a
-    %a -> inv, con
-    &inv -> b
-    %b -> con
-    &con -> output
-    "
-);
-
 #[derive(Clone, Copy, Debug)]
 enum Pulse {
     High,
@@ -278,6 +258,26 @@ impl AocSolution for Solution {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const TEST_CASE: &str = textwrap_macros::dedent!(
+        r"
+    broadcaster -> a, b, c
+    %a -> b
+    %b -> c
+    %c -> inv
+    &inv -> a
+    "
+    );
+
+    const TEST_CASE2: &str = textwrap_macros::dedent!(
+        r"
+    broadcaster -> a
+    %a -> inv, con
+    &inv -> b
+    %b -> con
+    &con -> output
+    "
+    );
 
     #[test]
     fn test_parse() {
