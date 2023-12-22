@@ -92,8 +92,8 @@ impl Field {
                     if c == '.' || c == 'S' {
                         field.points.insert(Point(x, y));
                     }
-                    field.width = x.max(field.width);
-                    field.height = y.max(field.height);
+                    field.width = (x + 1).max(field.width);
+                    field.height = (y + 1).max(field.height);
 
                     (field, if c == 'S' { Point(x, y) } else { point })
                 },
