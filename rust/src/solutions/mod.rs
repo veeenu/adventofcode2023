@@ -2,6 +2,7 @@ mod day01;
 mod day02;
 mod day03;
 mod day04;
+mod day12;
 mod day20;
 mod day21;
 mod day22;
@@ -23,6 +24,7 @@ pub fn solution(day: u8) -> Box<dyn AocSolution> {
         2 => Box::new(day02::Solution::new()),
         3 => Box::new(day03::Solution::new()),
         4 => Box::new(day04::Solution::new()),
+        12 => Box::new(day12::Solution::new()),
         20 => Box::new(day20::Solution::new()),
         21 => Box::new(day21::Solution::new()),
         22 => Box::new(day22::Solution::new()),
