@@ -1,20 +1,22 @@
-mod solutions;
-
 use std::path::PathBuf;
 
 use anyhow::Result;
-use chrono::{Datelike, Local};
 use clap::Parser;
 use reqwest::Client;
+
+pub trait AocSolution {
+    const DAY: u8;
+    fn new() -> Self
+    where
+        Self: Sized;
+    fn part1(&self, input: &str) -> u64;
+    fn part2(&self, input: &str) -> u64;
+}
 
 #[derive(Parser)]
 struct Cli {
     /// Download input and run solution.
     day: Option<u8>,
-}
-
-fn today() -> u8 {
-    Local::now().day() as u8
 }
 
 async fn get_input(day: u8) -> Result<String> {
@@ -41,16 +43,23 @@ async fn get_input(day: u8) -> Result<String> {
     Ok(body)
 }
 
-#[tokio::main]
-async fn main() {
-    let cli = Cli::parse();
-    let day = cli.day.unwrap_or_else(today);
-    let input = get_input(day).await.unwrap();
-    let solution = solutions::solution(day);
+pub async fn run_solution<S: AocSolution>() {
+    let input = get_input(S::DAY).await.unwrap();
+    let solution = S::new();
 
     let p1 = solution.part1(&input);
     println!("\x1b[32;1mPart 1:\x1b[33;1m {p1}\x1b[0m");
 
     let p2 = solution.part2(&input);
     println!("\x1b[32;1mPart 2:\x1b[33;1m {p2}\x1b[0m");
+}
+
+#[macro_export]
+macro_rules! run {
+    ($sol:ty) => {
+        #[tokio::main]
+        async fn main() {
+            adventofcode2023::run_solution::<$sol>().await;
+        }
+    };
 }

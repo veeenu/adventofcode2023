@@ -1,13 +1,15 @@
+use adventofcode2023::AocSolution;
+
 use nom::{
     branch::alt, bytes::complete::tag, character::complete, combinator::map, error::VerboseError,
     multi::separated_list0, sequence::tuple,
 };
 
-use super::AocSolution;
-
 pub struct Solution;
 
 impl AocSolution for Solution {
+    const DAY: u8 = 2;
+
     fn new() -> Self {
         Self
     }
@@ -144,3 +146,5 @@ mod tests {
         assert!(it.next().unwrap());
     }
 }
+
+adventofcode2023::run!(Solution);

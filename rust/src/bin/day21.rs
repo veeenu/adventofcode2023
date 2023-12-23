@@ -1,11 +1,11 @@
+use adventofcode2023::AocSolution;
+
 use std::{
     collections::BTreeSet,
     ops::{Div, Rem},
 };
 
 use hashbrown::HashMap;
-
-use super::AocSolution;
 
 pub struct Solution;
 
@@ -171,6 +171,8 @@ impl ConfigMap {
 }
 
 impl AocSolution for Solution {
+    const DAY: u8 = 21;
+
     fn new() -> Self {
         Self
     }
@@ -261,3 +263,5 @@ mod tests {
         assert_eq!(config_map.count(), 16);
     }
 }
+
+adventofcode2023::run!(Solution);

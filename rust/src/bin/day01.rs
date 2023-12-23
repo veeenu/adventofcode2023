@@ -1,8 +1,10 @@
-use super::AocSolution;
+use adventofcode2023::AocSolution;
 
 pub struct Solution;
 
 impl AocSolution for Solution {
+    const DAY: u8 = 1;
+
     fn new() -> Self {
         Self
     }
@@ -77,3 +79,5 @@ fn parse_line(line: &str) -> Vec<u32> {
         })
         .collect::<Vec<_>>()
 }
+
+adventofcode2023::run!(Solution);

@@ -1,3 +1,5 @@
+use adventofcode2023::AocSolution;
+
 use std::collections::{HashSet, VecDeque};
 
 use nom::{
@@ -9,11 +11,11 @@ use nom::{
     sequence::tuple,
 };
 
-use super::AocSolution;
-
 pub struct Solution;
 
 impl AocSolution for Solution {
+    const DAY: u8 = 4;
+
     fn new() -> Self {
         Self
     }
@@ -125,3 +127,5 @@ mod tests {
         assert_eq!(sol.part2(TEST_INPUT), 30);
     }
 }
+
+adventofcode2023::run!(Solution);

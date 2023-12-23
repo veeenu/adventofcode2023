@@ -1,12 +1,14 @@
-use std::{iter::Enumerate, ops::RangeInclusive, str::Chars};
+use adventofcode2023::AocSolution;
 
-use super::AocSolution;
+use std::{iter::Enumerate, ops::RangeInclusive, str::Chars};
 
 use itertools::Itertools;
 
 pub struct Solution;
 
 impl AocSolution for Solution {
+    const DAY: u8 = 3;
+
     fn new() -> Self {
         Self
     }
@@ -166,3 +168,5 @@ mod tests {
         assert_eq!(sol.part2(TEST_INPUT), 467835);
     }
 }
+
+adventofcode2023::run!(Solution);

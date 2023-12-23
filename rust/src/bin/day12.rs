@@ -1,9 +1,9 @@
+use adventofcode2023::AocSolution;
+
 use std::cmp::Ordering;
 
 use hashbrown::HashMap;
 use itertools::Itertools;
-
-use super::AocSolution;
 
 pub struct Solution;
 
@@ -118,6 +118,8 @@ impl Cached {
 }
 
 impl AocSolution for Solution {
+    const DAY: u8 = 12;
+
     fn new() -> Self {
         Self
     }
@@ -156,3 +158,5 @@ mod tests {
         println!("{}", Solution.part2(TEST_CASE));
     }
 }
+
+adventofcode2023::run!(Solution);

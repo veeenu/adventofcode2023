@@ -1,11 +1,11 @@
+use adventofcode2023::AocSolution;
+
 use std::{
     cell::RefCell,
     collections::{HashMap, VecDeque},
 };
 
 use itertools::Itertools;
-
-use super::AocSolution;
 
 pub struct Solution;
 
@@ -229,6 +229,8 @@ impl<'a> ModuleMap<'a> {
 }
 
 impl AocSolution for Solution {
+    const DAY: u8 = 20;
+
     fn new() -> Self {
         Self
     }
@@ -294,3 +296,5 @@ mod tests {
         println!("{}x{} -> {}", mm.count_low, mm.count_high, mm.counts());
     }
 }
+
+adventofcode2023::run!(Solution);

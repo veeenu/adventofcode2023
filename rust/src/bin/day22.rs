@@ -1,9 +1,9 @@
+use adventofcode2023::AocSolution;
+
 use std::collections::VecDeque;
 
 use hashbrown::{HashMap, HashSet};
 use itertools::Itertools;
-
-use super::AocSolution;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct Point(usize, usize, usize);
@@ -219,6 +219,8 @@ impl Field {
 pub struct Solution;
 
 impl AocSolution for Solution {
+    const DAY: u8 = 22;
+
     fn new() -> Self {
         Self
     }
@@ -274,3 +276,5 @@ mod tests {
         println!("{:?}", field.find_chain(BrickId(5)));
     }
 }
+
+adventofcode2023::run!(Solution);
