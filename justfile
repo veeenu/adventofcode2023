@@ -4,7 +4,7 @@ alias r := run
 alias t := test
 
 run DAY=(DAY):
-  zig run zig/day{{DAY}}.zig
+  cd rust && cargo run --release --bin day`printf "%02d" {{DAY}}`
 
 test DAY=(DAY):
-  zig test zig/day{{DAY}}.zig
+  cd rust && cargo test --release --bin day`printf "%02d" {{DAY}}`
