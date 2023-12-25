@@ -21,6 +21,10 @@ impl AocSolution for Solution {
     }
 
     fn part2(&self, input: &str) -> u64 {
+        // Notes:
+        // There are 3*N parametric equations of the form x_i = vx_i * tx_i + x0_i (tx,ty,tz unk)
+        // Plus one parametric equation of the form x_r = vx_r * tx_r + x0_r for the rock (x,vx,x0 unk)
+        // But it should exist a unique (x0_r, vx_r) s.t. (x_r, tx_r) = (x_i, tx_i) for exactly one i
         0
     }
 }
