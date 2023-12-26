@@ -4,7 +4,6 @@ use std::{cmp::Ordering, collections::binary_heap::*};
 
 use adventofcode2023::AocSolution;
 use hashbrown::{HashMap, HashSet};
-use itertools::Itertools;
 
 struct Solution;
 
@@ -19,30 +18,11 @@ impl AocSolution for Solution {
     }
 
     fn part1(&self, input: &str) -> u64 {
-        let (edges, size) = parse(input);
-        let v = shortest_path(&edges, size).unwrap();
-
-        let s = input.trim().as_bytes();
-
-        let p = v.steps.into_iter().collect::<HashSet<_>>();
-
-        for y in 0..size {
-            for x in 0..size {
-                let c = s[y * (size + 1) + x] as char;
-                if p.contains(&(x, y)) {
-                    print!("\x1b[31m{}\x1b[0m", c);
-                } else {
-                    print!("{}", c);
-                }
-            }
-            println!();
-        }
-
-        v.cost
+        run(input, Direction::check)
     }
 
     fn part2(&self, input: &str) -> u64 {
-        0
+        run(input, Direction::check2)
     }
 }
 
@@ -117,21 +97,41 @@ impl Direction {
         }
     }
 
-    fn check(&self) -> bool {
+    fn steps(&self) -> usize {
         match self {
             Direction::North(i) | Direction::South(i) | Direction::West(i) | Direction::East(i) => {
-                *i <= 3
+                *i
             }
         }
     }
 
-    fn advance(
-        &self,
+    fn check(&self, _prev: &Self) -> bool {
+        self.steps() <= 3
+    }
+
+    fn check2(&self, prev: &Self) -> bool {
+        let same = matches!(
+            (self, prev),
+            (Direction::North(_), Direction::North(_))
+                | (Direction::South(_), Direction::South(_))
+                | (Direction::West(_), Direction::West(_))
+                | (Direction::East(_), Direction::East(_))
+        );
+
+        let steps = prev.steps();
+
+        self.steps() <= 10 && (same || steps >= 4)
+    }
+
+    fn advance<'a, F: Fn(&Direction, &Direction) -> bool + 'a>(
+        &'a self,
         position: (usize, usize),
         size: usize,
-    ) -> impl Iterator<Item = ((usize, usize), Self)> {
+        check: &'a F,
+    ) -> impl Iterator<Item = ((usize, usize), Self)> + 'a {
         [self.forward(), self.cw(), self.ccw()]
             .into_iter()
+            .filter(move |dir| check(dir, self))
             .filter_map(move |dir| {
                 let (x, y) = position;
                 let (dx, dy) = dir.dirs();
@@ -146,7 +146,10 @@ impl Direction {
     }
 }
 
-fn shortest_path(costs: &HashMap<(usize, usize), u64>, size: usize) -> Option<State> {
+fn shortest_path<F>(costs: &HashMap<(usize, usize), u64>, size: usize, check: F) -> Option<State>
+where
+    F: Fn(&Direction, &Direction) -> bool,
+{
     let mut heap = BinaryHeap::new();
     let mut visited = HashSet::new();
 
@@ -157,6 +160,13 @@ fn shortest_path(costs: &HashMap<(usize, usize), u64>, size: usize) -> Option<St
         dir: Direction::East(0),
     });
 
+    heap.push(State {
+        cost: 0,
+        position: (0, 0),
+        steps: vec![],
+        dir: Direction::South(0),
+    });
+
     while let Some(State {
         cost,
         position,
@@ -164,7 +174,7 @@ fn shortest_path(costs: &HashMap<(usize, usize), u64>, size: usize) -> Option<St
         dir,
     }) = heap.pop()
     {
-        if position == (size - 1, size - 1) {
+        if position == (size - 1, size - 1) && check(&dir.ccw(), &dir) {
             return Some(State {
                 cost,
                 position,
@@ -177,11 +187,7 @@ fn shortest_path(costs: &HashMap<(usize, usize), u64>, size: usize) -> Option<St
             continue;
         }
 
-        for (edge, dir) in dir.advance(position, size) {
-            if !dir.check() {
-                continue;
-            }
-
+        for (edge, next_dir) in dir.advance(position, size, &check) {
             let mut next_steps = steps.clone();
             next_steps.push(edge);
 
@@ -191,7 +197,7 @@ fn shortest_path(costs: &HashMap<(usize, usize), u64>, size: usize) -> Option<St
                 cost: cost + next_cost,
                 position: edge,
                 steps: next_steps,
-                dir,
+                dir: next_dir,
             };
 
             heap.push(next);
@@ -199,17 +205,6 @@ fn shortest_path(costs: &HashMap<(usize, usize), u64>, size: usize) -> Option<St
     }
 
     None
-}
-
-fn neighborhood((x, y): (usize, usize), size: usize) -> impl Iterator<Item = (usize, usize)> {
-    [(-1isize, 0isize), (1, 0), (0, -1), (0, 1)]
-        .into_iter()
-        .filter_map(move |(dx, dy)| {
-            Some((
-                x.checked_add_signed(dx).filter(move |x| x < &size)?,
-                y.checked_add_signed(dy).filter(move |y| y < &size)?,
-            ))
-        })
 }
 
 fn parse(input: &str) -> (HashMap<(usize, usize), u64>, usize) {
@@ -227,10 +222,35 @@ fn parse(input: &str) -> (HashMap<(usize, usize), u64>, usize) {
     (edges, size)
 }
 
+fn run<F: Fn(&Direction, &Direction) -> bool>(input: &str, check: F) -> u64 {
+    let (edges, size) = parse(input);
+    let v = shortest_path(&edges, size, check).unwrap();
+    let s = input.trim().as_bytes();
+
+    for point in &v.steps {
+        println!("{point:?} {}", edges.get(point).unwrap());
+    }
+
+    let p = v.steps.into_iter().collect::<HashSet<_>>();
+
+    for y in 0..size {
+        for x in 0..size {
+            let c = s[y * (size + 1) + x] as char;
+            if p.contains(&(x, y)) {
+                print!("\x1b[31m{}\x1b[0m", c);
+            } else {
+                print!("{}", c);
+            }
+        }
+        println!();
+    }
+    println!("Cost {}", v.cost);
+
+    v.cost
+}
+
 #[cfg(test)]
 mod tests {
-    use hashbrown::HashSet;
-
     use super::*;
 
     const TEST_CASE: &str = textwrap_macros::dedent!(
@@ -253,28 +273,8 @@ mod tests {
 
     #[test]
     fn test() {
-        let (edges, size) = parse(TEST_CASE);
-        let v = shortest_path(&edges, size).unwrap();
-        let s = TEST_CASE.trim().as_bytes();
-
-        println!("Cost {}", v.cost);
-        for point in &v.steps {
-            println!("{point:?} {}", edges.get(point).unwrap());
-        }
-
-        let p = v.steps.into_iter().collect::<HashSet<_>>();
-
-        for y in 0..size {
-            for x in 0..size {
-                let c = s[y * (size + 1) + x] as char;
-                if p.contains(&(x, y)) {
-                    print!("\x1b[31m{}\x1b[0m", c);
-                } else {
-                    print!("{}", c);
-                }
-            }
-            println!();
-        }
+        run(TEST_CASE, Direction::check);
+        run(TEST_CASE, Direction::check2);
     }
 }
 
