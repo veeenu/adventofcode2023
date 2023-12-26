@@ -3,7 +3,7 @@
 use std::{cmp::Ordering, collections::binary_heap::*};
 
 use adventofcode2023::AocSolution;
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 use itertools::Itertools;
 
 struct Solution;
@@ -19,7 +19,26 @@ impl AocSolution for Solution {
     }
 
     fn part1(&self, input: &str) -> u64 {
-        0
+        let (edges, size) = parse(input);
+        let v = shortest_path(&edges, size).unwrap();
+
+        let s = input.trim().as_bytes();
+
+        let p = v.steps.into_iter().collect::<HashSet<_>>();
+
+        for y in 0..size {
+            for x in 0..size {
+                let c = s[y * (size + 1) + x] as char;
+                if p.contains(&(x, y)) {
+                    print!("\x1b[31m{}\x1b[0m", c);
+                } else {
+                    print!("{}", c);
+                }
+            }
+            println!();
+        }
+
+        v.cost
     }
 
     fn part2(&self, input: &str) -> u64 {
@@ -27,20 +46,17 @@ impl AocSolution for Solution {
     }
 }
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 struct State {
     cost: u64,
     position: (usize, usize),
     steps: Vec<(usize, usize)>,
+    dir: Direction,
 }
 
 impl Ord for State {
     fn cmp(&self, other: &Self) -> Ordering {
-        other
-            .cost
-            .cmp(&self.cost)
-            .then_with(|| self.steps.cmp(&other.steps))
-            .then_with(|| self.position.cmp(&other.position))
+        other.cost.cmp(&self.cost)
     }
 }
 
@@ -56,139 +72,118 @@ struct Edge {
     cost: u64,
 }
 
-// #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-// enum Step {
-//     North(usize),
-//     South(usize),
-//     East(usize),
-//     West(usize),
-// }
-//
-// impl Step {
-//     fn next(&self, (ax, ay): (usize, usize), (bx, by): (usize, usize)) -> Option<Self> {
-//         let dx = bx as isize - ax as isize;
-//         let dy = by as isize - ay as isize;
-//
-//         match (dx, dy, self) {
-//             (-1, 0, Step::West(i)) => Some(Step::West(i + 1)),
-//             (-1, 0, Step::East(_)) => None,
-//             (-1, 0, _) => Some(Step::West(1)),
-//             (1, 0, Step::East(i)) => Some(Step::East(i + 1)),
-//             (1, 0, Step::West(_)) => None,
-//             (1, 0, _) => Some(Step::East(1)),
-//             (0, -1, Step::North(i)) => Some(Step::North(i + 1)),
-//             (0, -1, Step::South(_)) => None,
-//             (0, -1, _) => Some(Step::North(1)),
-//             (0, 1, Step::South(i)) => Some(Step::South(i + 1)),
-//             (0, 1, Step::North(_)) => None,
-//             (0, 1, _) => Some(Step::South(1)),
-//             _ => None,
-//         }
-//     }
-//
-//     fn valid(&self) -> bool {
-//         let i = match *self {
-//             Step::North(i) => i,
-//             Step::South(i) => i,
-//             Step::East(i) => i,
-//             Step::West(i) => i,
-//         };
-//
-//         i < 3
-//     }
-// }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-enum Step {
-    North,
-    South,
-    West,
-    East,
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Hash)]
+enum Direction {
+    North(usize),
+    South(usize),
+    West(usize),
+    East(usize),
 }
 
-impl Step {
-    fn from_points((x1, y1): (usize, usize), (x2, y2): (usize, usize)) -> Self {
-        let dx = x2 as isize - x1 as isize;
-        let dy = y2 as isize - y1 as isize;
-
-        match (dx, dy) {
-            (-1, 0) => Step::West,
-            (1, 0) => Step::East,
-            (0, -1) => Step::North,
-            (0, 1) => Step::South,
-            _ => unreachable!(),
+impl Direction {
+    fn forward(self) -> Self {
+        match self {
+            Direction::North(i) => Direction::North(i + 1),
+            Direction::South(i) => Direction::South(i + 1),
+            Direction::West(i) => Direction::West(i + 1),
+            Direction::East(i) => Direction::East(i + 1),
         }
     }
 
-    fn goes_back(&self, rhs: Self) -> bool {
-        matches!(
-            (self, rhs),
-            (Step::North, Step::South)
-                | (Step::South, Step::North)
-                | (Step::West, Step::East)
-                | (Step::East, Step::West)
-        )
+    fn cw(self) -> Self {
+        match self {
+            Direction::North(_) => Direction::East(1),
+            Direction::South(_) => Direction::West(1),
+            Direction::West(_) => Direction::North(1),
+            Direction::East(_) => Direction::South(1),
+        }
     }
 
-    fn check(steps: &[(usize, usize)]) -> bool {
-        if steps.len() < 5 {
-            return true;
+    fn ccw(self) -> Self {
+        match self {
+            Direction::North(_) => Direction::West(1),
+            Direction::South(_) => Direction::East(1),
+            Direction::West(_) => Direction::South(1),
+            Direction::East(_) => Direction::North(1),
         }
+    }
 
-        let last_five = &steps[(steps.len() - 5)..];
+    fn dirs(&self) -> (isize, isize) {
+        match self {
+            Direction::North(_) => (0, -1),
+            Direction::South(_) => (0, 1),
+            Direction::West(_) => (-1, 0),
+            Direction::East(_) => (1, 0),
+        }
+    }
 
-        let Some((a, b, c, d)) = last_five
-            .iter()
-            .tuple_windows()
-            .map(|(a, b)| Self::from_points(*a, *b))
-            .next_tuple()
-        else {
-            return true;
-        };
+    fn check(&self) -> bool {
+        match self {
+            Direction::North(i) | Direction::South(i) | Direction::West(i) | Direction::East(i) => {
+                *i <= 3
+            }
+        }
+    }
 
-        !(a == b && b == c && c == d && !c.goes_back(d))
+    fn advance(
+        &self,
+        position: (usize, usize),
+        size: usize,
+    ) -> impl Iterator<Item = ((usize, usize), Self)> {
+        [self.forward(), self.cw(), self.ccw()]
+            .into_iter()
+            .filter_map(move |dir| {
+                let (x, y) = position;
+                let (dx, dy) = dir.dirs();
+                Some((
+                    (
+                        x.checked_add_signed(dx).filter(move |x| x < &size)?,
+                        y.checked_add_signed(dy).filter(move |y| y < &size)?,
+                    ),
+                    dir,
+                ))
+            })
     }
 }
 
-fn shortest_path(costs: HashMap<(usize, usize), u64>, size: usize) -> Option<State> {
-    let mut dist = (0..size)
-        .cartesian_product(0..size)
-        .map(|(x, y)| ((x, y), std::u64::MAX))
-        .collect::<HashMap<_, _>>();
+fn shortest_path(costs: &HashMap<(usize, usize), u64>, size: usize) -> Option<State> {
     let mut heap = BinaryHeap::new();
+    let mut visited = HashSet::new();
 
-    *dist.get_mut(&(0, 0)).unwrap() = 0;
     heap.push(State {
         cost: 0,
         position: (0, 0),
         steps: vec![],
+        dir: Direction::East(0),
     });
 
     while let Some(State {
         cost,
         position,
         steps,
+        dir,
     }) = heap.pop()
     {
         if position == (size - 1, size - 1) {
             return Some(State {
                 cost,
                 position,
-                steps,
+                steps: steps.clone(),
+                dir,
             });
         }
 
-        if cost > *dist.get(&position).unwrap() {
+        if !visited.insert((position, dir)) {
             continue;
         }
 
-        for edge in neighborhood(position, size) {
-            let mut next_steps = steps.clone();
-            next_steps.push(edge);
-
-            if !Step::check(&next_steps) {
+        for (edge, dir) in dir.advance(position, size) {
+            if !dir.check() {
                 continue;
             }
+
+            let mut next_steps = steps.clone();
+            next_steps.push(edge);
 
             let next_cost = costs.get(&edge).unwrap();
 
@@ -196,12 +191,10 @@ fn shortest_path(costs: HashMap<(usize, usize), u64>, size: usize) -> Option<Sta
                 cost: cost + next_cost,
                 position: edge,
                 steps: next_steps,
+                dir,
             };
 
-            if next.cost < *dist.get(&next.position).unwrap() {
-                *dist.get_mut(&next.position).unwrap() = next.cost;
-                heap.push(next);
-            }
+            heap.push(next);
         }
     }
 
@@ -228,13 +221,6 @@ fn parse(input: &str) -> (HashMap<(usize, usize), u64>, usize) {
     for y in 0..size {
         for x in 0..size {
             edges.insert((x, y), (input[y * (size + 1) + x] - b'0') as u64);
-            // edges
-            //     .entry((x, y))
-            //     .or_default()
-            // .extend(neighborhood(x, y, size).map(|(x, y)| Edge {
-            //     node: (x, y),
-            //     cost: (input[y * (size + 1) + x] - b'0') as u64,
-            // }));
         }
     }
 
@@ -268,18 +254,15 @@ mod tests {
     #[test]
     fn test() {
         let (edges, size) = parse(TEST_CASE);
-        for (k, vs) in &edges {
-            println!("{k:?}: ");
-            for Edge { node, cost } in vs {
-                print!("  {node:?} {cost}, ");
-            }
-            println!();
-        }
-        let v = shortest_path(edges, size).unwrap();
-        let p = v.steps.into_iter().collect::<HashSet<_>>();
-        println!("{}", v.cost);
-
+        let v = shortest_path(&edges, size).unwrap();
         let s = TEST_CASE.trim().as_bytes();
+
+        println!("Cost {}", v.cost);
+        for point in &v.steps {
+            println!("{point:?} {}", edges.get(point).unwrap());
+        }
+
+        let p = v.steps.into_iter().collect::<HashSet<_>>();
 
         for y in 0..size {
             for x in 0..size {
